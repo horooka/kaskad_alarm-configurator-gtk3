@@ -1,0 +1,9 @@
+# Gtkmm3.0 on c++17
+
+- Avoid extra spacing
+- Use auto keyword only for lambdas
+- Implement recursive lambdas via self-reference
+
+- Check build with build part of ./buildrun.sh script for errors and warnings
+
+- Warn about intend to multifile changes in existing code

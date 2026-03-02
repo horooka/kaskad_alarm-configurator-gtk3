@@ -1,0 +1,61 @@
+parse_klogic_config(restore) kinda fails on main.cpp:5902
+
+Stations =
+    new StStations(std::filesystem::path(stations_config_path)
+                      .parent_path()
+                      .string(),
+                    false);
+Machins = new StMachins(
+    std::filesystem::path(alarms_dir_path).parent_path().string() +
+        "/KLogic",
+    false);
+Machins->InitAllMachine();
+int machins_use_count = Machins->GetUseCount();
+for (int station_id = 1; station_id < machins_use_count + 1;
+      station_id++) {
+    StControllers *station = Machins->GetControllers(station_id);
+    if (!station)
+        continue;
+    Gtk::TreeModel::Row station_row =
+        *treestore_zones->append(klogic_row.children());
+    station_row[zone_cols.icon] = pixbuf_station;
+    station_row[zone_cols.name] =
+        std::string("Station_") + std::to_string(station_id);
+    for (int ctrl_idx = 0;
+          ctrl_idx < station->CntrlHead.controlcount; ctrl_idx++) {
+        StController *controller = &station->Controllers[ctrl_idx];
+        int controller_id = controller->id;
+        Gtk::TreeModel::Row controller_row =
+            *treestore_zones->append(station_row.children());
+        controller_row[zone_cols.icon] = pixbuf_klogic;
+        controller_row[zone_cols.name] =
+            std::string("Контроллер ") +
+            std::to_string(controller_id);
+        StTree *tree = Machins->GetTree(station_id, controller_id);
+        if (!tree || tree->TreeHead.childcount == 0)
+            continue;
+        StTreeChild *fabl_child = &tree->TreeChilds[0];
+        StParams *params = station->GetParams(controller_id);
+        short unsigned int fabl_child_count =
+            fabl_child->TreeChHead.childcount;
+        for (short unsigned int i = 0; i < fabl_child_count; i++) {
+            StTreeChild *task_child = &fabl_child->TreeChilds[i];
+            Gtk::TreeModel::Row task_row =
+                *treestore_zones->append(controller_row.children());
+            task_row[zone_cols.name] =
+                cp1251_to_utf8(task_child->TreeChHead.name);
+            if (!task_child->params)
+                continue;
+            short unsigned int param_count =
+                task_child->TreeChHead.paramcount;
+            for (int j = 0; j < param_count; j++) {
+                StParam *param =
+                    params->GetParam(task_child->params[j]);
+                Gtk::TreeModel::Row signal_row =
+                    *treestore_zones->append(task_row.children());
+                signal_row[zone_cols.name] =
+                    cp1251_to_utf8(param->name);
+            }
+        }
+    }
+}
